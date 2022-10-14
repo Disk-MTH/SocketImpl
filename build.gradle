@@ -1,0 +1,15 @@
+plugins {
+    id 'java'
+}
+
+group = project.property('group')
+version = project.property('version')
+archivesBaseName = project.property('fileName')
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: '*.jar')
+}
