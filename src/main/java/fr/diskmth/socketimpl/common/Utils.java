@@ -2,11 +2,9 @@ package fr.diskmth.socketimpl.common;
 
 import javax.net.ssl.*;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.security.KeyStore;
 
-public class Utils
+public final class Utils
 {
     public static SSLContext createSSLContext(Pair<InputStream, String> p12KeyStore, Pair<InputStream, String> JKSTrustStore) throws Exception
     {

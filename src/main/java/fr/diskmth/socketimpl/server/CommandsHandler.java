@@ -5,12 +5,13 @@ import fr.diskmth.socketimpl.common.Pair;
 import java.util.List;
 import java.util.Scanner;
 
-public final class CommandsHandler extends Thread
+public class CommandsHandler extends Thread
 {
-    private boolean isRunning = true;
     private final List<Pair<String, Runnable>> commands;
     private final boolean ignoreCase;
-    private ServerSocketImpl server;
+
+    private boolean isRunning = true;
+    private ServerSocket server;
 
     public CommandsHandler(List<Pair<String, Runnable>> commands, boolean ignoreCase)
     {
@@ -18,12 +19,7 @@ public final class CommandsHandler extends Thread
         this.ignoreCase = ignoreCase;
     }
 
-    public CommandsHandler()
-    {
-        this(null, false);
-    }
-
-    public synchronized void init(ServerSocketImpl server)
+    public synchronized void init(ServerSocket server)
     {
         this.server = server;
         start();

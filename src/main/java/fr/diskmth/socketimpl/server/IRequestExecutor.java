@@ -6,9 +6,9 @@ import fr.diskmth.loggy.LogsFile;
 import java.io.IOException;
 import java.net.Socket;
 
-public interface IProcessRequest
+public interface IRequestExecutor
 {
-    default void process(Socket clientSocket, Logger logger, LogsFile genericsLogs, LogsFile serverCallsLogs)
+    default void processRequest(Socket clientSocket, Logger logger, LogsFile genericsLogs, LogsFile serverCallsLogs)
     {
         try
         {

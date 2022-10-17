@@ -4,12 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e45a0001-443d-4a91-b336-07121a1fb14e" name="Changes" comment="finish implementation of server side">
+    <list default="true" id="e45a0001-443d-4a91-b336-07121a1fb14e" name="Changes" comment="add pause and resume system">
+      <change afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/ServerSocketBuilder.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/client/ClientSocketImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/client/ClientSocketImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/common/Utils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/common/Utils.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/CommandsHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/CommandsHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/IProcessRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/IProcessRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/ServerSocketImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/ServerSocketImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/IProcessRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/IRequestExecutor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/ServerSocketImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/ServerSocket.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/java/Test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/Test.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -45,8 +47,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Class" />
         <option value="Interface" />
+        <option value="Class" />
       </list>
     </option>
   </component>
@@ -122,7 +124,14 @@
       <option name="project" value="LOCAL" />
       <updated>1666027284126</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="add pause and resume system">
+      <created>1666031254074</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1666031254074</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -141,6 +150,7 @@
     <MESSAGE value="setup project and start implementation of server" />
     <MESSAGE value="add license" />
     <MESSAGE value="finish implementation of server side" />
-    <option name="LAST_COMMIT_MESSAGE" value="finish implementation of server side" />
+    <MESSAGE value="add pause and resume system" />
+    <option name="LAST_COMMIT_MESSAGE" value="add pause and resume system" />
   </component>
 </project>

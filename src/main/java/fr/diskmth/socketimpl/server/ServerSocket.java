@@ -11,51 +11,49 @@ import javax.net.ssl.SSLServerSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-public final class ServerSocketImpl
+public class ServerSocket
 {
     private final Logger logger;
-    private final IProcessRequest processRequest;
-    private final InetSocketAddress address;
-    private final ExecutorService threadPool;
-    private final int maxEnqueuedRequests;
-    private final CommandsHandler commandsHandler;
-    private final Pair<InputStream, String> keyStore;
-    private final Pair<InputStream, String> trustStore;
-    private final List<String> forbiddenIps;
+    private final IRequestExecutor requestExecutor;
     private final LogsFile genericsLogs;
     private final LogsFile serverCallsLogs;
     private final LogsFile forbiddenCallsLogs;
+    private final InetSocketAddress address;
+    private final Pair<InputStream, String> keyStore;
+    private final Pair<InputStream, String> trustStore;
+    private final int maxEnqueuedRequests;
+    private final ExecutorService threadPool;
+    private final CommandsHandler commandsHandler;
+    private final List<String> forbiddenIps;
 
     private volatile boolean run = true;
     private volatile boolean pause = false;
-    private ServerSocket serverSocket;
+    private java.net.ServerSocket serverSocket;
 
-    private ServerSocketImpl(Logger logger, IProcessRequest processRequest, InetSocketAddress address,
-                             ExecutorService threadPool, int maxEnqueuedRequests, CommandsHandler commandsHandler,
-                             Pair<InputStream, String> keyStore, Pair<InputStream, String> trustStore, List<String> forbiddenIps,
-                             LogsFile genericsLogs, LogsFile serverCallsLogs, LogsFile forbiddenCallsLogs
+    ServerSocket(Logger logger, IRequestExecutor requestExecutor, InetSocketAddress address,
+                 Pair<InputStream, String> keyStore, Pair<InputStream, String> trustStore,
+                 LogsFile genericsLogs, LogsFile serverCallsLogs, LogsFile forbiddenCallsLogs,
+                 int maxEnqueuedRequests, ExecutorService threadPool,
+                 CommandsHandler commandsHandler, List<String> forbiddenIps
     )
     {
         this.logger = logger;
-        this.processRequest = processRequest;
+        this.requestExecutor = requestExecutor;
         this.address = address;
-        this.threadPool = threadPool;
-        this.maxEnqueuedRequests = maxEnqueuedRequests;
-        this.commandsHandler = commandsHandler;
         this.keyStore = keyStore;
         this.trustStore = trustStore;
-        this.forbiddenIps = forbiddenIps;
         this.genericsLogs = genericsLogs;
         this.serverCallsLogs = serverCallsLogs;
         this.forbiddenCallsLogs = forbiddenCallsLogs;
+        this.maxEnqueuedRequests = maxEnqueuedRequests;
+        this.threadPool = threadPool;
+        this.commandsHandler = commandsHandler;
+        this.forbiddenIps = forbiddenIps;
     }
 
     public void start()
@@ -154,7 +152,7 @@ public final class ServerSocketImpl
                     {
                         logger.log("Request handled from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, serverCallsLogs);
 
-                        threadPool.submit(() -> processRequest.process(clientSocket, logger, genericsLogs, serverCallsLogs));
+                        threadPool.submit(() -> requestExecutor.processRequest(clientSocket, logger, genericsLogs, serverCallsLogs));
                     }
                     else
                     {
@@ -257,107 +255,5 @@ public final class ServerSocketImpl
         }
 
         System.exit(0);
-    }
-
-    public static final class Builder
-    {
-        private final Logger logger;
-        private final IProcessRequest processRequest;
-        private final Pair<InputStream, String> keyStore = Pair.of(null, "");
-        private final Pair<InputStream, String> trustStore = Pair.of(null, "");
-        private final List<String> forbiddenIps = new ArrayList<>();
-        private InetSocketAddress address = new InetSocketAddress("localhost", 8080);
-        private ExecutorService threadPool = Executors.newFixedThreadPool(1);
-        private int maxEnqueuedRequests = -1;
-        private CommandsHandler commandsHandler = null;
-        private LogsFile genericsLogs = null;
-        private LogsFile serverCallsLogs = null;
-        private LogsFile forbiddenCallsLogs = null;
-
-        public Builder(Logger logger, IProcessRequest processRequest)
-        {
-            this.logger = logger;
-            this.processRequest = processRequest;
-        }
-
-        public Builder address(String host, int port)
-        {
-            this.address = new InetSocketAddress(host, port);
-            return this;
-        }
-
-        public Builder httpUrl(String url)
-        {
-            return address(url, 80);
-        }
-
-        public Builder httpsUrl(String url)
-        {
-            return address(url, 443);
-        }
-
-        public Builder genericsLogsFile(LogsFile file)
-        {
-            genericsLogs = file;
-            return this;
-        }
-
-        public Builder serverCallsLogsFile(LogsFile file)
-        {
-            serverCallsLogs = file;
-            return this;
-        }
-
-        public Builder forbiddenCallsLogsFile(LogsFile file)
-        {
-            forbiddenCallsLogs = file;
-            return this;
-        }
-
-        public Builder multiThread(int maxThreadCount)
-        {
-            if (maxThreadCount > 0)
-            {
-                threadPool = Executors.newFixedThreadPool(maxThreadCount);
-            }
-            else
-            {
-                threadPool = Executors.newCachedThreadPool();
-            }
-            return this;
-        }
-
-        public Builder maxEnqueuedRequests(int maxEnqueuedRequests)
-        {
-            this.maxEnqueuedRequests = maxEnqueuedRequests;
-            return this;
-        }
-
-        public Builder commandsHandler(CommandsHandler commandsHandler)
-        {
-            this.commandsHandler = commandsHandler;
-            return this;
-        }
-
-        public Builder withSSL(Pair<InputStream, String> keyStore, Pair<InputStream, String> trustStore)
-        {
-            this.keyStore.setFirst(keyStore.getFirst()).setSecond(keyStore.getSecond());
-            this.trustStore.setFirst(trustStore.getFirst()).setSecond(trustStore.getSecond());
-            return this;
-        }
-
-        public Builder forbiddenIps(List<String> forbiddenIps)
-        {
-            this.forbiddenIps.addAll(forbiddenIps);
-            return this;
-        }
-
-        public ServerSocketImpl build()
-        {
-            if (logger == null) throw new NullPointerException("Server logger can't be null");
-            if (address == null) throw new NullPointerException("Server address can't be null");
-
-            return new ServerSocketImpl(logger, processRequest, address, threadPool, maxEnqueuedRequests, commandsHandler, keyStore, trustStore, forbiddenIps, genericsLogs, serverCallsLogs, forbiddenCallsLogs);
-        }
     }
 }
