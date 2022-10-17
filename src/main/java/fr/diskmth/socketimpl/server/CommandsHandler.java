@@ -1,23 +1,32 @@
 package fr.diskmth.socketimpl.server;
 
-import java.util.HashMap;
+import fr.diskmth.socketimpl.common.Pair;
+
+import java.util.List;
 import java.util.Scanner;
 
 public final class CommandsHandler extends Thread
 {
     private boolean isRunning = true;
-    private final HashMap<String, Runnable> commands;
+    private final List<Pair<String, Runnable>> commands;
     private final boolean ignoreCase;
+    private ServerSocketImpl server;
 
-    public CommandsHandler(HashMap<String, Runnable> commands, boolean ignoreCase)
+    public CommandsHandler(List<Pair<String, Runnable>> commands, boolean ignoreCase)
     {
         this.commands = commands;
         this.ignoreCase = ignoreCase;
     }
 
-    public void close()
+    public CommandsHandler()
     {
-        isRunning = false;
+        this(null, false);
+    }
+
+    public synchronized void init(ServerSocketImpl server)
+    {
+        this.server = server;
+        start();
     }
 
     @Override
@@ -29,12 +38,29 @@ public final class CommandsHandler extends Thread
         {
             final String input = commandsListener.next();
 
-            for (String command : commands.keySet())
+            if (input.equalsIgnoreCase("stop"))
             {
-                if ((ignoreCase && input.equalsIgnoreCase(command)) || (!ignoreCase && input.equals(command)))
+                isRunning = false;
+                server.stop();
+            }
+            else if (input.equalsIgnoreCase("suspend"))
+            {
+                server.suspend();
+            }
+            else if (input.equalsIgnoreCase("resume"))
+            {
+                server.resume();
+            }
+            else if (commands != null)
+            {
+                commands.forEach((command) ->
                 {
-                    commands.get(command).run();
-                }
+
+                    if ((ignoreCase && input.equalsIgnoreCase(command.getFirst())) || (!ignoreCase && input.equals(command.getFirst())))
+                    {
+                        command.getSecond().run();
+                    }
+                });
             }
         }
     }

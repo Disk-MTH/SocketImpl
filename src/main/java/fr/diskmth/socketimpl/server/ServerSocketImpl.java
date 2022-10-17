@@ -13,70 +13,77 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class ServerSocketImpl
 {
     private final Logger logger;
+    private final IProcessRequest processRequest;
     private final InetSocketAddress address;
-    private final Pair<Boolean, LogsFile> genericsLogs;
-    private final Pair<Boolean, LogsFile> serverCallsLogs;
-    private final Pair<Boolean, LogsFile> forbiddenCallsLogs;
     private final ExecutorService threadPool;
     private final int maxEnqueuedRequests;
     private final CommandsHandler commandsHandler;
     private final Pair<InputStream, String> keyStore;
     private final Pair<InputStream, String> trustStore;
+    private final Pair<Boolean, List<String>> forbiddenIps;
+    private final LogsFile genericsLogs;
+    private final LogsFile serverCallsLogs;
+    private final LogsFile forbiddenCallsLogs;
+
     private volatile boolean run = true;
     private ServerSocket serverSocket;
 
-    private ServerSocketImpl(Logger logger, InetSocketAddress address,
-                             Pair<Boolean, LogsFile> genericsLogs, Pair<Boolean, LogsFile> serverCallsLogs, Pair<Boolean, LogsFile> forbiddenCallsLogs,
+    private ServerSocketImpl(Logger logger, IProcessRequest processRequest, InetSocketAddress address,
                              ExecutorService threadPool, int maxEnqueuedRequests, CommandsHandler commandsHandler,
-                             Pair<InputStream, String> keyStore, Pair<InputStream, String> trustStore
+                             Pair<InputStream, String> keyStore, Pair<InputStream, String> trustStore, Pair<Boolean, List<String>> forbiddenIps,
+                             LogsFile genericsLogs, LogsFile serverCallsLogs, LogsFile forbiddenCallsLogs
     )
     {
         this.logger = logger;
+        this.processRequest = processRequest;
         this.address = address;
-        this.genericsLogs = genericsLogs;
-        this.serverCallsLogs = serverCallsLogs;
-        this.forbiddenCallsLogs = forbiddenCallsLogs;
         this.threadPool = threadPool;
         this.maxEnqueuedRequests = maxEnqueuedRequests;
         this.commandsHandler = commandsHandler;
         this.keyStore = keyStore;
         this.trustStore = trustStore;
+        this.forbiddenIps = forbiddenIps;
+        this.genericsLogs = genericsLogs;
+        this.serverCallsLogs = serverCallsLogs;
+        this.forbiddenCallsLogs = forbiddenCallsLogs;
     }
 
     public void start()
     {
-        if (genericsLogs.getFirst() && genericsLogs.getSecond() != null)
+        /* -------------------------------------------------- Init logs files -------------------------------------------------- */
+
+        if (genericsLogs != null)
         {
-            genericsLogs.getSecond().init();
+            genericsLogs.init();
         }
 
-        if (serverCallsLogs.getFirst() && serverCallsLogs.getSecond() != null)
+        if (serverCallsLogs != null)
         {
-            serverCallsLogs.getSecond().init();
+            serverCallsLogs.init();
         }
 
-        if (forbiddenCallsLogs.getFirst() && forbiddenCallsLogs.getSecond() != null)
+        if (forbiddenCallsLogs != null)
         {
-            forbiddenCallsLogs.getSecond().init();
+            forbiddenCallsLogs.init();
         }
 
-        if (genericsLogs.getFirst())
-        {
-            logger.log("ServerSocketImpl is starting on: " + address.getAddress().getHostAddress() + ":" + address.getPort(), genericsLogs.getSecond());
-        }
+        /* -------------------------------------------------- Log info -------------------------------------------------- */
+
+        logger.log("ServerSocketImpl is starting on: " + address.getAddress().getHostAddress() + ":" + address.getPort(), genericsLogs);
+
+        /* -------------------------------------------------- Create server socket -------------------------------------------------- */
 
         if (keyStore.getFirst() != null && trustStore.getFirst() != null)
         {
-            if (genericsLogs.getFirst())
-            {
-                logger.log("Try to create server socket with SSl (https mode)", genericsLogs.getSecond());
-            }
+            logger.log("Try to create server socket with SSl (https mode)", genericsLogs);
 
             SSLContext sslContext = null;
             try
@@ -85,17 +92,11 @@ public final class ServerSocketImpl
             }
             catch (Exception exception)
             {
-                if (genericsLogs.getFirst())
-                {
-                    logger.error("Error when creating SSl context", exception, genericsLogs.getSecond());
-                }
+                logger.error("Error when creating SSl context", exception, genericsLogs);
                 stop();
             }
 
-            if (genericsLogs.getFirst())
-            {
-                logger.log("A SSl context has been generated", genericsLogs.getSecond());
-            }
+            logger.log("A SSl context has been generated", genericsLogs);
 
             try
             {
@@ -103,10 +104,7 @@ public final class ServerSocketImpl
             }
             catch (IOException exception)
             {
-                if (genericsLogs.getFirst())
-                {
-                    logger.error("Error when creating server socket", exception, genericsLogs.getSecond());
-                }
+                logger.error("Error when creating server socket", exception, genericsLogs);
                 stop();
             }
             ((SSLServerSocket) serverSocket).setNeedClientAuth(true);
@@ -114,10 +112,7 @@ public final class ServerSocketImpl
         }
         else
         {
-            if (genericsLogs.getFirst())
-            {
-                logger.log("Try to create server socket without SSL (http mode)", genericsLogs.getSecond());
-            }
+            logger.log("Try to create server socket without SSL (http mode)", genericsLogs);
 
             try
             {
@@ -125,26 +120,26 @@ public final class ServerSocketImpl
             }
             catch (IOException exception)
             {
-                if (genericsLogs.getFirst())
-                {
-                    logger.error("Error when creating server socket", exception, genericsLogs.getSecond());
-                }
+                logger.error("Error when creating server socket", exception, genericsLogs);
                 stop();
             }
         }
 
-        if (genericsLogs.getFirst())
+        logger.log("Server socket has been generated", genericsLogs);
+
+        /* -------------------------------------------------- Init commands handler -------------------------------------------------- */
+
+        if (commandsHandler != null)
         {
-            logger.log("Server socket has been generated", genericsLogs.getSecond());
+            commandsHandler.init(this);
+            logger.log("Commands are enabled", genericsLogs);
         }
 
-        commandsHandler.start();
+        /* -------------------------------------------------- Log info -------------------------------------------------- */
 
-        if (genericsLogs.getFirst())
-        {
-            logger.log("Commands are enabled", genericsLogs.getSecond());
-            logger.log("Server is started", genericsLogs.getSecond());
-        }
+        logger.log("Server is started", genericsLogs);
+
+        /* -------------------------------------------------- Server loop -------------------------------------------------- */
 
         while (run)
         {
@@ -152,16 +147,23 @@ public final class ServerSocketImpl
             {
                 final Socket clientSocket = serverSocket.accept();
 
-                threadPool.submit(() ->
+                if (forbiddenIps.getFirst() && !forbiddenIps.getSecond().contains(clientSocket.getInetAddress().getHostAddress()))
                 {
+                    logger.log("Request handled from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, serverCallsLogs);
 
-                });
+                    threadPool.submit(() -> processRequest.process(clientSocket, logger, genericsLogs, serverCallsLogs));
+                }
+                else
+                {
+                    logger.warn("Forbidden request skipped from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, forbiddenCallsLogs);
+                    clientSocket.close();
+                }
             }
             catch (IOException exception)
             {
-                if (run && genericsLogs.getFirst())
+                if (run)
                 {
-                    logger.warn("Error while handling a request", exception, genericsLogs.getSecond(), serverCallsLogs.getSecond());
+                    logger.warn("Error while handling a request", exception, genericsLogs, serverCallsLogs);
                 }
             }
         }
@@ -172,27 +174,88 @@ public final class ServerSocketImpl
 
     }
 
+    public void resume()
+    {
+
+    }
+
     public void stop()
     {
+        /* -------------------------------------------------- Log info -------------------------------------------------- */
+
+        logger.log("Server is stopping", genericsLogs);
+
+        /* -------------------------------------------------- Interrupt server loop -------------------------------------------------- */
+
+        run = false;
+
+        /* -------------------------------------------------- Close server socket -------------------------------------------------- */
+
+        try
+        {
+            logger.log("Close server socket", genericsLogs);
+            serverSocket.close();
+        }
+        catch (IOException | NullPointerException exception)
+        {
+            logger.warn("Unable to close server socket", exception, genericsLogs);
+        }
+
+        /* -------------------------------------------------- Close thread pool -------------------------------------------------- */
+
+        try
+        {
+            logger.log("Close threadPool", genericsLogs);
+            threadPool.shutdown();
+        }
+        catch (NullPointerException exception)
+        {
+            logger.warn("Unable to close threadPool", exception, genericsLogs);
+        }
+
+        /* -------------------------------------------------- Log info -------------------------------------------------- */
+
+        logger.log("Server is stopped", genericsLogs);
+
+        /* -------------------------------------------------- Close logs files -------------------------------------------------- */
+
+        if (genericsLogs != null)
+        {
+            genericsLogs.close();
+        }
+
+        if (serverCallsLogs != null)
+        {
+            serverCallsLogs.close();
+        }
+
+        if (forbiddenCallsLogs != null)
+        {
+            forbiddenCallsLogs.close();
+        }
+
         System.exit(0);
     }
 
     public static final class Builder
     {
         private final Logger logger;
-        private final Pair<Boolean, LogsFile> genericsLogs = Pair.of(true, null);
-        private final Pair<Boolean, LogsFile> serverCallsLogs = Pair.of(false, null);
-        private final Pair<Boolean, LogsFile> forbiddenCallsLogs = Pair.of(false, null);
+        private final IProcessRequest processRequest;
         private final Pair<InputStream, String> keyStore = Pair.of(null, "");
         private final Pair<InputStream, String> trustStore = Pair.of(null, "");
+        private final Pair<Boolean, List<String>> forbiddenIps = Pair.of(false, new ArrayList<>());
         private InetSocketAddress address = new InetSocketAddress("localhost", 8080);
         private ExecutorService threadPool = Executors.newFixedThreadPool(1);
         private int maxEnqueuedRequests = -1;
         private CommandsHandler commandsHandler = null;
+        private LogsFile genericsLogs = null;
+        private LogsFile serverCallsLogs = null;
+        private LogsFile forbiddenCallsLogs = null;
 
-        public Builder(Logger logger)
+        public Builder(Logger logger, IProcessRequest processRequest)
         {
             this.logger = logger;
+            this.processRequest = processRequest;
         }
 
         public Builder address(String host, int port)
@@ -211,21 +274,21 @@ public final class ServerSocketImpl
             return address(url, 443);
         }
 
-        public Builder genericsLogs(boolean state, LogsFile file)
+        public Builder genericsLogsFile(LogsFile file)
         {
-            genericsLogs.setFirst(state).setSecond(file);
+            genericsLogs = file;
             return this;
         }
 
-        public Builder serverCallsLogs(boolean state, LogsFile file)
+        public Builder serverCallsLogsFile(LogsFile file)
         {
-            serverCallsLogs.setFirst(state).setSecond(file);
+            serverCallsLogs = file;
             return this;
         }
 
-        public Builder forbiddenCallsLogs(boolean state, LogsFile file)
+        public Builder forbiddenCallsLogsFile(LogsFile file)
         {
-            forbiddenCallsLogs.setFirst(state).setSecond(file);
+            forbiddenCallsLogs = file;
             return this;
         }
 
@@ -261,12 +324,19 @@ public final class ServerSocketImpl
             return this;
         }
 
+        public Builder forbiddenIps(boolean state, List<String> forbiddenIps)
+        {
+            this.forbiddenIps.setFirst(state).setSecond(forbiddenIps);
+            return this;
+        }
+
         public ServerSocketImpl build()
         {
             if (logger == null) throw new NullPointerException("Server logger can't be null");
             if (address == null) throw new NullPointerException("Server address can't be null");
+            if (forbiddenIps.getSecond() == null) throw new NullPointerException("Forbidden ips list can't be null");
 
-            return new ServerSocketImpl(logger, address, genericsLogs, serverCallsLogs, forbiddenCallsLogs, threadPool, maxEnqueuedRequests, commandsHandler, keyStore, trustStore);
+            return new ServerSocketImpl(logger, processRequest, address, threadPool, maxEnqueuedRequests, commandsHandler, keyStore, trustStore, forbiddenIps, genericsLogs, serverCallsLogs, forbiddenCallsLogs);
         }
     }
 }
