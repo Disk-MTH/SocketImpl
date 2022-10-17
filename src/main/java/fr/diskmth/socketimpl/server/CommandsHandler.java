@@ -43,13 +43,13 @@ public final class CommandsHandler extends Thread
                 isRunning = false;
                 server.stop();
             }
-            else if (input.equalsIgnoreCase("suspend"))
+            else if (input.equalsIgnoreCase("pause"))
             {
-                server.suspend();
+                server.pause(true);
             }
             else if (input.equalsIgnoreCase("resume"))
             {
-                server.resume();
+                server.pause(false);
             }
             else if (commands != null)
             {

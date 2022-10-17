@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e45a0001-443d-4a91-b336-07121a1fb14e" name="Changes" comment="add license">
-      <change afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/IProcessRequest.java" afterDir="false" />
+    <list default="true" id="e45a0001-443d-4a91-b336-07121a1fb14e" name="Changes" comment="finish implementation of server side">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/common/Utils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/common/Utils.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/CommandsHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/CommandsHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/IProcessRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/IProcessRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/ServerSocketImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/fr/diskmth/socketimpl/server/ServerSocketImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/java/Test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/Test.java" afterDir="false" />
     </list>
@@ -77,6 +78,20 @@
       <recent name="D:\dev\Java\SocketImpl\libs" />
     </key>
   </component>
+  <component name="RunManager">
+    <configuration name="Test" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="Test" />
+      <module name="SocketImpl.test" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.Test" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -100,7 +115,14 @@
       <option name="project" value="LOCAL" />
       <updated>1665780763880</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="finish implementation of server side">
+      <created>1666027284126</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1666027284126</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -118,6 +140,7 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="setup project and start implementation of server" />
     <MESSAGE value="add license" />
-    <option name="LAST_COMMIT_MESSAGE" value="add license" />
+    <MESSAGE value="finish implementation of server side" />
+    <option name="LAST_COMMIT_MESSAGE" value="finish implementation of server side" />
   </component>
 </project>

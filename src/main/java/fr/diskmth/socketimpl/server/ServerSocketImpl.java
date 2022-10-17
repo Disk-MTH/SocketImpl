@@ -15,6 +15,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -28,17 +29,18 @@ public final class ServerSocketImpl
     private final CommandsHandler commandsHandler;
     private final Pair<InputStream, String> keyStore;
     private final Pair<InputStream, String> trustStore;
-    private final Pair<Boolean, List<String>> forbiddenIps;
+    private final List<String> forbiddenIps;
     private final LogsFile genericsLogs;
     private final LogsFile serverCallsLogs;
     private final LogsFile forbiddenCallsLogs;
 
     private volatile boolean run = true;
+    private volatile boolean pause = false;
     private ServerSocket serverSocket;
 
     private ServerSocketImpl(Logger logger, IProcessRequest processRequest, InetSocketAddress address,
                              ExecutorService threadPool, int maxEnqueuedRequests, CommandsHandler commandsHandler,
-                             Pair<InputStream, String> keyStore, Pair<InputStream, String> trustStore, Pair<Boolean, List<String>> forbiddenIps,
+                             Pair<InputStream, String> keyStore, Pair<InputStream, String> trustStore, List<String> forbiddenIps,
                              LogsFile genericsLogs, LogsFile serverCallsLogs, LogsFile forbiddenCallsLogs
     )
     {
@@ -100,7 +102,7 @@ public final class ServerSocketImpl
 
             try
             {
-                serverSocket = sslContext.getServerSocketFactory().createServerSocket(address.getPort(), maxEnqueuedRequests, address.getAddress());
+                serverSocket = Objects.requireNonNull(sslContext).getServerSocketFactory().createServerSocket(address.getPort(), maxEnqueuedRequests, address.getAddress());
             }
             catch (IOException exception)
             {
@@ -146,16 +148,22 @@ public final class ServerSocketImpl
             try
             {
                 final Socket clientSocket = serverSocket.accept();
-
-                if (forbiddenIps.getFirst() && !forbiddenIps.getSecond().contains(clientSocket.getInetAddress().getHostAddress()))
+                if (!pause)
                 {
-                    logger.log("Request handled from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, serverCallsLogs);
+                    if (!forbiddenIps.contains(clientSocket.getInetAddress().getHostAddress()))
+                    {
+                        logger.log("Request handled from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, serverCallsLogs);
 
-                    threadPool.submit(() -> processRequest.process(clientSocket, logger, genericsLogs, serverCallsLogs));
+                        threadPool.submit(() -> processRequest.process(clientSocket, logger, genericsLogs, serverCallsLogs));
+                    }
+                    else
+                    {
+                        logger.warn("Forbidden request skipped from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, forbiddenCallsLogs);
+                        clientSocket.close();
+                    }
                 }
                 else
                 {
-                    logger.warn("Forbidden request skipped from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, forbiddenCallsLogs);
                     clientSocket.close();
                 }
             }
@@ -169,14 +177,28 @@ public final class ServerSocketImpl
         }
     }
 
-    public void suspend()
+    public void pause(boolean pause)
     {
-
-    }
-
-    public void resume()
-    {
-
+        if (pause && this.pause)
+        {
+            logger.warn("The server is already paused", genericsLogs);
+        }
+        else if (!pause && !this.pause)
+        {
+            logger.warn("The server is already active", genericsLogs);
+        }
+        else
+        {
+            this.pause = pause;
+            if (pause)
+            {
+                logger.log("Server paused", genericsLogs);
+            }
+            else
+            {
+                logger.log("Server resumed", genericsLogs);
+            }
+        }
     }
 
     public void stop()
@@ -243,7 +265,7 @@ public final class ServerSocketImpl
         private final IProcessRequest processRequest;
         private final Pair<InputStream, String> keyStore = Pair.of(null, "");
         private final Pair<InputStream, String> trustStore = Pair.of(null, "");
-        private final Pair<Boolean, List<String>> forbiddenIps = Pair.of(false, new ArrayList<>());
+        private final List<String> forbiddenIps = new ArrayList<>();
         private InetSocketAddress address = new InetSocketAddress("localhost", 8080);
         private ExecutorService threadPool = Executors.newFixedThreadPool(1);
         private int maxEnqueuedRequests = -1;
@@ -324,9 +346,9 @@ public final class ServerSocketImpl
             return this;
         }
 
-        public Builder forbiddenIps(boolean state, List<String> forbiddenIps)
+        public Builder forbiddenIps(List<String> forbiddenIps)
         {
-            this.forbiddenIps.setFirst(state).setSecond(forbiddenIps);
+            this.forbiddenIps.addAll(forbiddenIps);
             return this;
         }
 
@@ -334,7 +356,6 @@ public final class ServerSocketImpl
         {
             if (logger == null) throw new NullPointerException("Server logger can't be null");
             if (address == null) throw new NullPointerException("Server address can't be null");
-            if (forbiddenIps.getSecond() == null) throw new NullPointerException("Forbidden ips list can't be null");
 
             return new ServerSocketImpl(logger, processRequest, address, threadPool, maxEnqueuedRequests, commandsHandler, keyStore, trustStore, forbiddenIps, genericsLogs, serverCallsLogs, forbiddenCallsLogs);
         }

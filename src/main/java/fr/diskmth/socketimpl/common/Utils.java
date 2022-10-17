@@ -8,20 +8,6 @@ import java.security.KeyStore;
 
 public class Utils
 {
-    public static final Path JAR_PATH;
-
-    static
-    {
-        try
-        {
-            JAR_PATH = Path.of(Utils.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
-        }
-        catch (URISyntaxException exception)
-        {
-            throw new RuntimeException(exception);
-        }
-    }
-
     public static SSLContext createSSLContext(Pair<InputStream, String> p12KeyStore, Pair<InputStream, String> JKSTrustStore) throws Exception
     {
         final KeyStore keyStore = KeyStore.getInstance("PKCS12");
