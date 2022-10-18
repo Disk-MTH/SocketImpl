@@ -1,25 +1,23 @@
 package fr.diskmth.socketimpl.server;
 
-import fr.diskmth.socketimpl.common.Pair;
-
-import java.util.List;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class CommandsHandler extends Thread
 {
-    private final List<Pair<String, Runnable>> commands;
+    private final HashMap<String, ICommand> commands;
     private final boolean ignoreCase;
 
     private boolean isRunning = true;
-    private ServerSocket server;
+    private Server server;
 
-    public CommandsHandler(List<Pair<String, Runnable>> commands, boolean ignoreCase)
+    public CommandsHandler(HashMap<String, ICommand> commands, boolean ignoreCase)
     {
         this.commands = commands;
         this.ignoreCase = ignoreCase;
     }
 
-    public synchronized void init(ServerSocket server)
+    public synchronized void init(Server server)
     {
         this.server = server;
         start();
@@ -49,12 +47,11 @@ public class CommandsHandler extends Thread
             }
             else if (commands != null)
             {
-                commands.forEach((command) ->
+                commands.forEach((syntax, command) ->
                 {
-
-                    if ((ignoreCase && input.equalsIgnoreCase(command.getFirst())) || (!ignoreCase && input.equals(command.getFirst())))
+                    if ((ignoreCase && input.equalsIgnoreCase(syntax)) || (!ignoreCase && input.equals(syntax)))
                     {
-                        command.getSecond().run();
+                        command.execute(server);
                     }
                 });
             }

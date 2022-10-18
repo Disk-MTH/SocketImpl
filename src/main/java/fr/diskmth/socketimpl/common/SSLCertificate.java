@@ -4,15 +4,28 @@ import javax.net.ssl.*;
 import java.io.InputStream;
 import java.security.KeyStore;
 
-public final class Utils
+public class SSLCertificate
 {
-    public static SSLContext createSSLContext(Pair<InputStream, String> p12KeyStore, Pair<InputStream, String> JKSTrustStore) throws Exception
+    protected final InputStream keystore;
+    protected final char[] keystorePassword;
+    protected final InputStream truststore;
+    protected final char[] truststorePassword;
+
+    public SSLCertificate(InputStream keystore, String keystorePassword, InputStream truststore, String truststorePassword)
+    {
+        this.keystore = keystore;
+        this.keystorePassword = keystorePassword.toCharArray();
+        this.truststore = truststore;
+        this.truststorePassword = truststorePassword.toCharArray();
+    }
+
+    public SSLContext createSSLContext() throws Exception
     {
         final KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        keyStore.load(p12KeyStore.getFirst(), p12KeyStore.getSecond().toCharArray());
+        keyStore.load(keystore, keystorePassword);
 
         final KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(JKSTrustStore.getFirst(), JKSTrustStore.getSecond().toCharArray());
+        trustStore.load(truststore, truststorePassword);
 
         final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustManagerFactory.init(trustStore);
@@ -30,7 +43,7 @@ public final class Utils
         if (x509TrustManager == null) throw new NullPointerException("Trust manager can't be null");
 
         final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, p12KeyStore.getSecond().toCharArray());
+        keyManagerFactory.init(keyStore, keystorePassword);
 
         X509KeyManager x509KeyManager = null;
         for (KeyManager keyManager : keyManagerFactory.getKeyManagers())
