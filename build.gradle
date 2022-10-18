@@ -6,10 +6,98 @@ group = project.property('group')
 version = project.property('version')
 archivesBaseName = project.property('fileName')
 
+compileJava {
+    options.encoding = "UTF-8"
+    sourceCompatibility = project.property('javaVersion')
+    targetCompatibility = project.property('javaVersion')
+}
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: '*.jar')
+}
+
+jar {
+    manifest {
+        attributes(
+                'Name'     :  project.property('fileName'),
+                'Version'   : project.property('version'),
+                'Java-version'   : project.property('javaVersion'),
+                'Authors'    : project.property('authors'),
+                'Credits'   : project.property('credits'),
+                'Description'   : project.property('description'),
+        )
+    }
+}
+
+task fatJar(type: Jar, dependsOn: classes) {
+    classifier = 'all'
+    manifest {
+        attributes(
+                'Name'     :  archivesBaseName + '-' + classifier,
+                'Version'   : project.property('version'),
+                'Java-version'   : project.property('javaVersion'),
+                'Authors'    : project.property('authors'),
+                'Credits'   : project.property('credits'),
+                'Description'   : project.property('description'),
+        )
+    }
+
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    with jar
+}
+
+task clientJar(type: Jar, dependsOn: classes) {
+    classifier = 'client'
+    manifest {
+        attributes(
+                'Name'     :  archivesBaseName + '-' + classifier,
+                'Version'   : project.property('version'),
+                'Java-version'   : project.property('javaVersion'),
+                'Authors'    : project.property('authors'),
+                'Credits'   : project.property('credits'),
+                'Description'   : project.property('description'),
+        )
+    }
+
+    from (sourceSets.main.output) {
+        include (project.property('group').replace('.', '/') + '/client/*', project.property('group').replace('.', '/') + '/common/*')
+    }
+}
+
+task clientFatJar(type: Jar, dependsOn: classes) {
+    classifier = 'client-all'
+    manifest {
+        attributes(
+                'Name'     :  archivesBaseName + '-' + classifier,
+                'Version'   : project.property('version'),
+                'Java-version'   : project.property('javaVersion'),
+                'Authors'    : project.property('authors'),
+                'Credits'   : project.property('credits'),
+                'Description'   : project.property('description'),
+        )
+    }
+
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+
+    from (sourceSets.main.output) {
+        include (project.property('group').replace('.', '/') + '/client/*', project.property('group').replace('.', '/') + '/common/*')
+    }
+}
+
+artifacts {
+    archives fatJar
+    archives clientJar
+    archives clientFatJar
 }
