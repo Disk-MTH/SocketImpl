@@ -170,7 +170,6 @@ public class Server
         {
             logger.warn("The server is already active", genericsLogs);
         }
-
         else
         {
             this.pause = pause;

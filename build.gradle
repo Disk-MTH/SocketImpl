@@ -68,7 +68,7 @@ task clientJar(type: Jar, dependsOn: classes) {
     }
 
     from (sourceSets.main.output) {
-        include (project.property('group').replace('.', '/') + '/client/*', project.property('group').replace('.', '/') + '/common/*')
+        include (project.property('group').replace('.', '/') + '/client/**', project.property('group').replace('.', '/') + '/common/**')
     }
 }
 
@@ -92,7 +92,49 @@ task clientFatJar(type: Jar, dependsOn: classes) {
     }
 
     from (sourceSets.main.output) {
-        include (project.property('group').replace('.', '/') + '/client/*', project.property('group').replace('.', '/') + '/common/*')
+        include (project.property('group').replace('.', '/') + '/client/**', project.property('group').replace('.', '/') + '/common/**')
+    }
+}
+
+task serverJar(type: Jar, dependsOn: classes) {
+    classifier = 'server'
+    manifest {
+        attributes(
+                'Name'     :  archivesBaseName + '-' + classifier,
+                'Version'   : project.property('version'),
+                'Java-version'   : project.property('javaVersion'),
+                'Authors'    : project.property('authors'),
+                'Credits'   : project.property('credits'),
+                'Description'   : project.property('description'),
+        )
+    }
+
+    from (sourceSets.main.output) {
+        include (project.property('group').replace('.', '/') + '/server/**', project.property('group').replace('.', '/') + '/common/**')
+    }
+}
+
+task serverFatJar(type: Jar, dependsOn: classes) {
+    classifier = 'server-all'
+    manifest {
+        attributes(
+                'Name'     :  archivesBaseName + '-' + classifier,
+                'Version'   : project.property('version'),
+                'Java-version'   : project.property('javaVersion'),
+                'Authors'    : project.property('authors'),
+                'Credits'   : project.property('credits'),
+                'Description'   : project.property('description'),
+        )
+    }
+
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+
+    from (sourceSets.main.output) {
+        include (project.property('group').replace('.', '/') + '/server/**', project.property('group').replace('.', '/') + '/common/**')
     }
 }
 
@@ -100,4 +142,6 @@ artifacts {
     archives fatJar
     archives clientJar
     archives clientFatJar
+    archives serverJar
+    archives serverFatJar
 }
