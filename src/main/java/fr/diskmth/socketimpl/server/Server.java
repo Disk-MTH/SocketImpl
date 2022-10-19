@@ -21,8 +21,11 @@ public class Server
     protected final Logger logger;
     protected final IRequestExecutor requestExecutor;
     protected final LogsFile genericsLogs;
+    protected final boolean genericsLogsInit;
     protected final LogsFile serverCallsLogs;
+    protected final boolean serverCallsLogsInit;
     protected final LogsFile forbiddenCallsLogs;
+    protected final boolean forbiddenCallsLogsInit;
     protected final InetSocketAddress address;
     protected final SSLCertificate sslCertificate;
     protected final int maxEnqueuedRequests;
@@ -35,7 +38,7 @@ public class Server
     private ServerSocket serverSocket;
 
     protected Server(Logger logger, IRequestExecutor requestExecutor, InetSocketAddress address, SSLCertificate sslCertificate,
-           LogsFile genericsLogs, LogsFile serverCallsLogs, LogsFile forbiddenCallsLogs,
+           LogsFile genericsLogs, boolean genericsLogsInit,LogsFile serverCallsLogs, boolean serverCallsLogsInit, LogsFile forbiddenCallsLogs, boolean forbiddenCallsLogsInit,
            int maxEnqueuedRequests, ExecutorService threadPool,
            CommandsHandler commandsHandler, List<String> forbiddenIps
     )
@@ -45,8 +48,11 @@ public class Server
         this.address = address;
         this.sslCertificate = sslCertificate;
         this.genericsLogs = genericsLogs;
+        this.genericsLogsInit = genericsLogsInit;
         this.serverCallsLogs = serverCallsLogs;
+        this.serverCallsLogsInit = serverCallsLogsInit;
         this.forbiddenCallsLogs = forbiddenCallsLogs;
+        this.forbiddenCallsLogsInit = forbiddenCallsLogsInit;
         this.maxEnqueuedRequests = maxEnqueuedRequests;
         this.threadPool = threadPool;
         this.commandsHandler = commandsHandler;
@@ -55,17 +61,17 @@ public class Server
 
     public void start()
     {
-        if (genericsLogs != null)
+        if (genericsLogsInit && genericsLogs != null)
         {
             genericsLogs.init();
         }
 
-        if (serverCallsLogs != null)
+        if (serverCallsLogsInit && serverCallsLogs != null)
         {
             serverCallsLogs.init();
         }
 
-        if (forbiddenCallsLogs != null)
+        if (forbiddenCallsLogsInit && forbiddenCallsLogs != null)
         {
             forbiddenCallsLogs.init();
         }
@@ -211,17 +217,17 @@ public class Server
 
         logger.log("Server is stopped", genericsLogs);
 
-        if (genericsLogs != null)
+        if (genericsLogsInit && genericsLogs != null)
         {
             genericsLogs.close();
         }
 
-        if (serverCallsLogs != null)
+        if (serverCallsLogsInit && serverCallsLogs != null)
         {
             serverCallsLogs.close();
         }
 
-        if (forbiddenCallsLogs != null)
+        if (forbiddenCallsLogsInit && forbiddenCallsLogs != null)
         {
             forbiddenCallsLogs.close();
         }

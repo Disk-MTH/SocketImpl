@@ -18,8 +18,11 @@ public class ServerBuilder
     protected InetSocketAddress address = new InetSocketAddress("localhost", 8080);
     protected SSLCertificate sslCertificate = null;
     protected LogsFile genericsLogs = null;
+    protected boolean genericsLogsInit = false;
     protected LogsFile serverCallsLogs = null;
+    protected boolean serverCallsLogsInit = false;
     protected LogsFile forbiddenCallsLogs = null;
+    protected boolean forbiddenCallsLogsInit = false;
     protected int maxEnqueuedRequests = -1;
     protected ExecutorService threadPool = Executors.newFixedThreadPool(1);
     protected CommandsHandler commandsHandler = null;
@@ -43,21 +46,24 @@ public class ServerBuilder
         return this;
     }
 
-    public ServerBuilder genericsLogsFile(LogsFile logsFile)
+    public ServerBuilder genericsLogsFile(LogsFile logsFile, boolean shouldInit)
     {
         genericsLogs = logsFile;
+        genericsLogsInit = shouldInit;
         return this;
     }
 
-    public ServerBuilder serverCallsLogsFile(LogsFile logsFile)
+    public ServerBuilder serverCallsLogsFile(LogsFile logsFile, boolean shouldInit)
     {
         serverCallsLogs = logsFile;
+        serverCallsLogsInit = shouldInit;
         return this;
     }
 
-    public ServerBuilder forbiddenCallsLogsFile(LogsFile logsFile)
+    public ServerBuilder forbiddenCallsLogsFile(LogsFile logsFile, boolean shouldInit)
     {
         forbiddenCallsLogs = logsFile;
+        forbiddenCallsLogsInit = shouldInit;
         return this;
     }
 
@@ -103,6 +109,6 @@ public class ServerBuilder
         if (requestExecutor == null) throw new NullPointerException("Request executor can't be null");
         if (address == null) throw new NullPointerException("Server address can't be null");
 
-        return new Server(logger, requestExecutor, address, sslCertificate, genericsLogs, serverCallsLogs, forbiddenCallsLogs, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
+        return new Server(logger, requestExecutor, address, sslCertificate, genericsLogs, genericsLogsInit, serverCallsLogs, serverCallsLogsInit, forbiddenCallsLogs, forbiddenCallsLogsInit, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
     }
 }
