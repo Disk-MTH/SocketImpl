@@ -8,16 +8,15 @@ import fr.diskmth.socketimpl.common.SSLCertificate;
 public class ClientBuilder
 {
     protected final Logger logger;
-    protected final IRequestExecutor requestExecutor;
     protected String host = "localhost";
     protected int port = 8080;
     protected SSLCertificate sslCertificate = null;
     protected LogsFile genericsLogs = null;
+    protected boolean genericsLogsInit = false;
 
-    public ClientBuilder(Logger logger, IRequestExecutor requestExecutor)
+    public ClientBuilder(Logger logger)
     {
         this.logger = logger;
-        this.requestExecutor = requestExecutor;
     }
 
     public ClientBuilder setAddress(String host, int port)
@@ -43,18 +42,18 @@ public class ClientBuilder
         return setAddress(httpsUrl, 443, sslCertificate);
     }
 
-    public ClientBuilder genericsLogsFile(LogsFile logsFile)
+    public ClientBuilder genericsLogsFile(LogsFile logsFile, boolean shouldInit)
     {
         genericsLogs = logsFile;
+        genericsLogsInit = shouldInit;
         return this;
     }
 
     public Client build()
     {
         if (logger == null) throw new NullPointerException("Server logger can't be null");
-        if (requestExecutor == null) throw new NullPointerException("Request executor can't be null");
         if (host == null) throw new NullPointerException("Server address can't be null");
 
-        return new Client(logger, requestExecutor, host, port, sslCertificate, genericsLogs);
+        return new Client(logger, host, port, sslCertificate, genericsLogs, genericsLogsInit);
     }
 }

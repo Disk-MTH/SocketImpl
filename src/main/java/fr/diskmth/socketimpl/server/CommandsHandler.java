@@ -5,10 +5,25 @@ import java.util.Scanner;
 
 public class CommandsHandler extends Thread
 {
+    public static final HashMap<String, ICommand> DEFAULT_COMMANDS = new HashMap<>()
+    {
+        {
+            put("start", Server::asyncListen);
+            put("stop", (server) -> server.isListening = false);
+            put("pause", (server) -> server.pause(true));
+            put("resume", (server) -> server.pause(false));
+            put("close", Server::close);
+            put("help", (server) ->
+            {
+                System.out.println("Available commands are:");
+                DEFAULT_COMMANDS.forEach((syntax, command) -> System.out.println(" - "  + syntax));
+            });
+        }
+    };
+
     private final HashMap<String, ICommand> commands;
     private final boolean ignoreCase;
 
-    private boolean isRunning = true;
     private Server server;
 
     public CommandsHandler(HashMap<String, ICommand> commands, boolean ignoreCase)
@@ -17,7 +32,7 @@ public class CommandsHandler extends Thread
         this.ignoreCase = ignoreCase;
     }
 
-    public synchronized void init(Server server)
+    protected void init(Server server)
     {
         this.server = server;
         start();
@@ -26,35 +41,26 @@ public class CommandsHandler extends Thread
     @Override
     public void run()
     {
+        server.logger.log("Commands are enabled", server.genericsLogs);
+
         final Scanner commandsListener = new Scanner(System.in);
 
-        while(isRunning)
+        while (server.isInit)
         {
             final String input = commandsListener.next();
 
-            if (input.equalsIgnoreCase("stop"))
-            {
-                isRunning = false;
-                server.stop();
-            }
-            else if (input.equalsIgnoreCase("pause"))
-            {
-                server.pause(true);
-            }
-            else if (input.equalsIgnoreCase("resume"))
-            {
-                server.pause(false);
-            }
-            else if (commands != null)
+            if (commands != null && !server.areCommandsPaused)
             {
                 commands.forEach((syntax, command) ->
                 {
-                    if ((ignoreCase && input.equalsIgnoreCase(syntax)) || (!ignoreCase && input.equals(syntax)))
+                    if ((ignoreCase && input.equalsIgnoreCase(syntax)) || input.equals(syntax))
                     {
                         command.execute(server);
                     }
                 });
             }
         }
+
+        server.logger.log("Commands are disabled", server.genericsLogs);
     }
 }

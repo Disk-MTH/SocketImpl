@@ -14,9 +14,9 @@ import java.util.concurrent.Executors;
 public class ServerBuilder
 {
     protected final Logger logger;
-    protected final IRequestExecutor requestExecutor;
     protected InetSocketAddress address = new InetSocketAddress("localhost", 8080);
     protected SSLCertificate sslCertificate = null;
+    protected final List<IRequestExecutor> requestExecutors = new ArrayList<>();
     protected LogsFile genericsLogs = null;
     protected boolean genericsLogsInit = false;
     protected LogsFile serverCallsLogs = null;
@@ -28,10 +28,9 @@ public class ServerBuilder
     protected CommandsHandler commandsHandler = null;
     protected final List<String> forbiddenIps = new ArrayList<>();
 
-    public ServerBuilder(Logger logger, IRequestExecutor requestExecutor)
+    public ServerBuilder(Logger logger)
     {
         this.logger = logger;
-        this.requestExecutor = requestExecutor;
     }
 
     public ServerBuilder setAddress(String host, int port)
@@ -43,6 +42,18 @@ public class ServerBuilder
     public ServerBuilder withSSL(SSLCertificate sslCertificate)
     {
         this.sslCertificate = sslCertificate;
+        return this;
+    }
+
+    public ServerBuilder addRequestExecutor(IRequestExecutor requestExecutor)
+    {
+        this.requestExecutors.add(requestExecutor);
+        return this;
+    }
+
+    public ServerBuilder addRequestExecutors(List<IRequestExecutor> requestExecutors)
+    {
+        this.requestExecutors.addAll(requestExecutors);
         return this;
     }
 
@@ -94,10 +105,16 @@ public class ServerBuilder
 
     public ServerBuilder addDefaultCommandsHandler()
     {
-        return addCommandsHandler(new CommandsHandler(null, false));
+        return addCommandsHandler(new CommandsHandler(CommandsHandler.DEFAULT_COMMANDS, true));
     }
 
-    public ServerBuilder forbiddenIps(List<String> forbiddenIps)
+    public ServerBuilder addForbiddenIp(String forbiddenIp)
+    {
+        this.forbiddenIps.add(forbiddenIp);
+        return this;
+    }
+
+    public ServerBuilder addForbiddenIps(List<String> forbiddenIps)
     {
         this.forbiddenIps.addAll(forbiddenIps);
         return this;
@@ -106,9 +123,9 @@ public class ServerBuilder
     public Server build()
     {
         if (logger == null) throw new NullPointerException("Server logger can't be null");
-        if (requestExecutor == null) throw new NullPointerException("Request executor can't be null");
         if (address == null) throw new NullPointerException("Server address can't be null");
+        if (requestExecutors.isEmpty()) throw new NullPointerException("You should have 1 requestExecutor minimum");
 
-        return new Server(logger, requestExecutor, address, sslCertificate, genericsLogs, genericsLogsInit, serverCallsLogs, serverCallsLogsInit, forbiddenCallsLogs, forbiddenCallsLogsInit, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
+        return new Server(logger, address, sslCertificate, requestExecutors, genericsLogs, genericsLogsInit, serverCallsLogs, serverCallsLogsInit, forbiddenCallsLogs, forbiddenCallsLogsInit, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
     }
 }

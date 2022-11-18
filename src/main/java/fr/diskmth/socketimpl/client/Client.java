@@ -2,40 +2,44 @@ package fr.diskmth.socketimpl.client;
 
 import fr.diskmth.loggy.Logger;
 import fr.diskmth.loggy.LogsFile;
+import fr.diskmth.socketimpl.common.IComplete;
 import fr.diskmth.socketimpl.common.IRequestExecutor;
+import fr.diskmth.socketimpl.common.Result;
 import fr.diskmth.socketimpl.common.SSLCertificate;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Client
 {
     protected final Logger logger;
-    protected final IRequestExecutor requestExecutor;
     protected final String host;
     protected final int port;
-    protected final SSLCertificate sslCertificate;
     protected final LogsFile genericsLogs;
+    protected final boolean genericsLogsInit;
+    protected final ExecutorService executor = Executors.newSingleThreadExecutor();
+    protected boolean isReady = false;
 
-    private Socket clientSocket;
+    protected Socket clientSocket;
 
-    protected Client(Logger logger, IRequestExecutor requestExecutor, String host, int port, SSLCertificate sslCertificate, LogsFile genericsLogs)
+    protected Client(Logger logger, String host, int port, SSLCertificate sslCertificate, LogsFile genericsLogs, boolean genericsLogsInit)
     {
         this.logger = logger;
-        this.requestExecutor = requestExecutor;
         this.host = host;
         this.port = port;
-        this.sslCertificate = sslCertificate;
         this.genericsLogs = genericsLogs;
-    }
+        this.genericsLogsInit = genericsLogsInit;
 
-    public void start()
-    {
-        if (genericsLogs != null)
+        if (genericsLogsInit && genericsLogs != null)
         {
             genericsLogs.init();
         }
@@ -46,7 +50,7 @@ public class Client
         {
             logger.log("Try to create client socket with SSL (https mode)", genericsLogs);
 
-            SSLContext sslContext = null;
+            SSLContext sslContext;
             try
             {
                 sslContext = sslCertificate.createSSLContext();
@@ -54,7 +58,8 @@ public class Client
             catch (Exception exception)
             {
                 logger.error("Error when creating SSL context", exception, genericsLogs);
-                stop();
+                close();
+                return;
             }
 
             logger.log("A SSL context has been generated", genericsLogs);
@@ -67,7 +72,8 @@ public class Client
             catch (IOException exception)
             {
                 logger.error("Error when creating client socket", exception, genericsLogs);
-                stop();
+                close();
+                return;
             }
         }
         else
@@ -81,20 +87,85 @@ public class Client
             catch (IOException exception)
             {
                 logger.error("Error when creating client socket", exception, genericsLogs);
-                stop();
+                close();
+                return;
             }
 
             logger.log("Client socket has been created", genericsLogs);
         }
 
-        logger.log("Start to process request", genericsLogs);
-
-        requestExecutor.clientSideExecution(clientSocket, logger, genericsLogs);
+        isReady = true;
+        logger.log("Ready to process requests", genericsLogs);
     }
 
-    public void stop()
+    public IComplete<Result> request(IRequestExecutor requestExecutor)
+    {
+        //Future<Result> result;
+        /*try
+        {
+            if (new DataInputStream(clientSocket.getInputStream()).readInt() != requestExecutor.identifier())
+            {
+                logger.log("No process match on the server with the identifier: " + requestExecutor.identifier(), genericsLogs);
+                result =  executor.submit(() -> Result.HANDSHAKE_FAIL);
+            }
+            else
+            {
+                logger.log("Handshake passed, start process", genericsLogs);
+                result = executor.submit(() -> requestExecutor.clientSideExecution(clientSocket, logger, genericsLogs));
+            }
+        }
+        catch (IOException exception)
+        {
+            logger.error("Error during handshake", exception, genericsLogs);
+            result = executor.submit(() -> Result.HANDSHAKE_FAIL);
+        }*/
+        try
+        {
+            if (isReady && new DataInputStream(clientSocket.getInputStream()).readInt() == requestExecutor.identifier())
+            {
+                final Future<Result> result = executor.submit(() -> requestExecutor.clientSideExecution(clientSocket, logger, genericsLogs));
+
+                while (!result.isDone() || result.isCancelled()) {}
+
+                return new IComplete<>()
+                {
+                    @Override
+                    public Result result()
+                    {
+                        try
+                        {
+                            return result.get();
+                        }
+                        catch (InterruptedException | ExecutionException exception)
+                        {
+                            return Result.FAIL;
+                        }
+                    }
+
+                    @Override
+                    public void onComplete(Runnable onComplete)
+                    {
+                        onComplete.run();
+                    }
+                };
+            }
+            else
+            {
+                logger.error("Impossible to send a request if the client is closed", genericsLogs);
+            }
+        }
+        catch (IOException exception)
+        {
+            logger.error("Handshake error", exception, genericsLogs);
+        }
+        return null;
+    }
+
+    public void close()
     {
         logger.log("Stopping client", genericsLogs);
+
+        isReady = false;
 
         try
         {
@@ -108,7 +179,7 @@ public class Client
 
         logger.log("Client is stopped", genericsLogs);
 
-        if (genericsLogs != null)
+        if (genericsLogsInit && genericsLogs != null)
         {
             genericsLogs.close();
         }

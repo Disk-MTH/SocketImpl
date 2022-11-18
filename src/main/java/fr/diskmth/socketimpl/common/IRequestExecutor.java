@@ -8,7 +8,9 @@ import java.net.Socket;
 
 public interface IRequestExecutor
 {
-    default void clientSideExecution(Socket clientSocket, Logger logger, LogsFile genericsLogs)
+    int identifier();
+
+    default Result clientSideExecution(Socket clientSocket, Logger logger, LogsFile genericsLogs)
     {
         try
         {
@@ -19,18 +21,27 @@ public interface IRequestExecutor
         {
             logger.warn("Error while closing request", exception, genericsLogs);
         }
+        return Result.SUCCESS;
     }
 
     default void serverSideExecution(Socket clientSocket, Logger logger, LogsFile genericsLogs, LogsFile serverCallsLogs)
     {
-        try
+        /*try
         {
-            logger.log("Finish process for: " + clientSocket.getInetAddress().getHostAddress() + ". Closing request", genericsLogs, serverCallsLogs);
+            logger.log("Finish process. Closing request", genericsLogs);
             clientSocket.close();
         }
         catch (IOException exception)
         {
-            logger.warn("Error while closing request from: " + clientSocket.getInetAddress().getHostAddress(), exception, genericsLogs, serverCallsLogs);
+            logger.warn("Error while closing request", exception, genericsLogs);
+        }*/
+        /*try
+        {
+            new DataOutputStream(clientSocket.getOutputStream()).writeInt(identifier());
         }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }*/
     }
 }
