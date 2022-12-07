@@ -1,5 +1,8 @@
 package fr.diskmth.socketimpl.server;
 
+import fr.diskmth.socketimpl.server.ICommand;
+import fr.diskmth.socketimpl.server.Server;
+
 import java.util.HashMap;
 import java.util.Scanner;
 

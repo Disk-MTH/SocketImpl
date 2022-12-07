@@ -2,7 +2,6 @@ package fr.diskmth.socketimpl.client;
 
 import fr.diskmth.loggy.Logger;
 import fr.diskmth.loggy.LogsFile;
-import fr.diskmth.socketimpl.common.IRequestExecutor;
 import fr.diskmth.socketimpl.common.SSLCertificate;
 
 public class ClientBuilder

@@ -1,4 +1,4 @@
-package fr.diskmth.socketimpl.common;
+package fr.diskmth.socketimpl;
 
 public interface IComplete<T>
 {

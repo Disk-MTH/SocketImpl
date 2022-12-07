@@ -2,7 +2,6 @@ package fr.diskmth.socketimpl.server;
 
 import fr.diskmth.loggy.Logger;
 import fr.diskmth.loggy.LogsFile;
-import fr.diskmth.socketimpl.common.IRequestExecutor;
 import fr.diskmth.socketimpl.common.SSLCertificate;
 
 import java.net.InetSocketAddress;
@@ -16,13 +15,10 @@ public class ServerBuilder
     protected final Logger logger;
     protected InetSocketAddress address = new InetSocketAddress("localhost", 8080);
     protected SSLCertificate sslCertificate = null;
-    protected final List<IRequestExecutor> requestExecutors = new ArrayList<>();
     protected LogsFile genericsLogs = null;
     protected boolean genericsLogsInit = false;
     protected LogsFile serverCallsLogs = null;
     protected boolean serverCallsLogsInit = false;
-    protected LogsFile forbiddenCallsLogs = null;
-    protected boolean forbiddenCallsLogsInit = false;
     protected int maxEnqueuedRequests = -1;
     protected ExecutorService threadPool = Executors.newFixedThreadPool(1);
     protected CommandsHandler commandsHandler = null;
@@ -45,18 +41,6 @@ public class ServerBuilder
         return this;
     }
 
-    public ServerBuilder addRequestExecutor(IRequestExecutor requestExecutor)
-    {
-        this.requestExecutors.add(requestExecutor);
-        return this;
-    }
-
-    public ServerBuilder addRequestExecutors(List<IRequestExecutor> requestExecutors)
-    {
-        this.requestExecutors.addAll(requestExecutors);
-        return this;
-    }
-
     public ServerBuilder genericsLogsFile(LogsFile logsFile, boolean shouldInit)
     {
         genericsLogs = logsFile;
@@ -68,13 +52,6 @@ public class ServerBuilder
     {
         serverCallsLogs = logsFile;
         serverCallsLogsInit = shouldInit;
-        return this;
-    }
-
-    public ServerBuilder forbiddenCallsLogsFile(LogsFile logsFile, boolean shouldInit)
-    {
-        forbiddenCallsLogs = logsFile;
-        forbiddenCallsLogsInit = shouldInit;
         return this;
     }
 
@@ -120,12 +97,11 @@ public class ServerBuilder
         return this;
     }
 
-    public Server build()
+    public eeeee build()
     {
         if (logger == null) throw new NullPointerException("Server logger can't be null");
         if (address == null) throw new NullPointerException("Server address can't be null");
-        if (requestExecutors.isEmpty()) throw new NullPointerException("You should have 1 requestExecutor minimum");
 
-        return new Server(logger, address, sslCertificate, requestExecutors, genericsLogs, genericsLogsInit, serverCallsLogs, serverCallsLogsInit, forbiddenCallsLogs, forbiddenCallsLogsInit, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
+        return new eeeee(logger, address, sslCertificate, genericsLogs, genericsLogsInit, serverCallsLogs, serverCallsLogsInit, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
     }
 }
