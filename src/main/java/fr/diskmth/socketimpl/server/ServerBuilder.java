@@ -85,23 +85,17 @@ public class ServerBuilder
         return addCommandsHandler(new CommandsHandler(CommandsHandler.DEFAULT_COMMANDS, true));
     }
 
-    public ServerBuilder addForbiddenIp(String forbiddenIp)
+    public ServerBuilder addForbiddenIps(String... forbiddenIps)
     {
-        this.forbiddenIps.add(forbiddenIp);
+        this.forbiddenIps.addAll(List.of(forbiddenIps));
         return this;
     }
 
-    public ServerBuilder addForbiddenIps(List<String> forbiddenIps)
-    {
-        this.forbiddenIps.addAll(forbiddenIps);
-        return this;
-    }
-
-    public eeeee build()
+    public Server build()
     {
         if (logger == null) throw new NullPointerException("Server logger can't be null");
         if (address == null) throw new NullPointerException("Server address can't be null");
 
-        return new eeeee(logger, address, sslCertificate, genericsLogs, genericsLogsInit, serverCallsLogs, serverCallsLogsInit, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
+        return new Server(logger, address, sslCertificate, genericsLogs, genericsLogsInit, serverCallsLogs, serverCallsLogsInit, maxEnqueuedRequests, threadPool, commandsHandler, forbiddenIps);
     }
 }

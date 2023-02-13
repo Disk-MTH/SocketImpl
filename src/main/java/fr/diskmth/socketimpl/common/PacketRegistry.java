@@ -12,9 +12,9 @@ public class PacketRegistry
         return registeredPackets.indexOf(packet);
     }
 
-    public static Class<? extends Packet> get(int index)
+    public static <T extends Class<? extends Packet>> T get(T packetType, int index)
     {
-        return registeredPackets.get(index);
+        return (T) registeredPackets.get(index);
     }
 
     public static void registerPacket(Class<? extends Packet> packet)

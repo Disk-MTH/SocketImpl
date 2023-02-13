@@ -1,25 +1,24 @@
 package fr.diskmth.socketimpl.server;
 
-import fr.diskmth.socketimpl.server.ICommand;
-import fr.diskmth.socketimpl.server.Server;
-
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CommandsHandler extends Thread
 {
     public static final HashMap<String, ICommand> DEFAULT_COMMANDS = new HashMap<>()
     {
         {
-            put("start", Server::asyncListen);
-            put("stop", (server) -> server.isListening = false);
+            put("start", Server::asyncStart);
+            put("stop", Server::stop);
             put("pause", (server) -> server.pause(true));
             put("resume", (server) -> server.pause(false));
             put("close", Server::close);
             put("help", (server) ->
             {
-                System.out.println("Available commands are:");
-                DEFAULT_COMMANDS.forEach((syntax, command) -> System.out.println(" - "  + syntax));
+                server.getLogger().log("Available commands are:");
+                DEFAULT_COMMANDS.forEach((syntax, command) -> server.getLogger().log(" - " + syntax));
             });
         }
     };
@@ -44,26 +43,50 @@ public class CommandsHandler extends Thread
     @Override
     public void run()
     {
-        server.logger.log("Commands are enabled", server.genericsLogs);
-
-        final Scanner commandsListener = new Scanner(System.in);
-
-        while (server.isInit)
+        if (server == null)
         {
-            final String input = commandsListener.next();
-
-            if (commands != null && !server.areCommandsPaused)
-            {
-                commands.forEach((syntax, command) ->
-                {
-                    if ((ignoreCase && input.equalsIgnoreCase(syntax)) || input.equals(syntax))
-                    {
-                        command.execute(server);
-                    }
-                });
-            }
+            throw new IllegalStateException("the server might not be null");
         }
 
-        server.logger.log("Commands are disabled", server.genericsLogs);
+        server.getLogger().log("Commands have been enabled", server.getGenericsLogs());
+
+        try
+        {
+            while (server.isInit())
+            {
+                if (System.in.available() <= 0)
+                {
+                    sleep(500);
+                    continue;
+                }
+
+                final String input = new Scanner(System.in).next();
+
+                if (commands != null && !server.areCommandsPaused())
+                {
+                    final AtomicBoolean found = new AtomicBoolean(false);
+
+                    commands.forEach((syntax, command) ->
+                    {
+                        if ((ignoreCase && input.equalsIgnoreCase(syntax)) || input.equals(syntax))
+                        {
+                            command.execute(server);
+                            found.set(true);
+                        }
+                    });
+
+                    if (!found.get())
+                    {
+                        server.getLogger().warn("Unknown command: " + input, server.getGenericsLogs());
+                    }
+                }
+            }
+        }
+        catch (IOException | InterruptedException exception)
+        {
+            server.getLogger().error("An error occurred while reading commands", exception, server.getGenericsLogs());
+        }
+
+        server.getLogger().log("Commands have been disabled", server.getGenericsLogs());
     }
 }

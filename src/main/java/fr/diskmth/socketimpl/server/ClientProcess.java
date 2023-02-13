@@ -50,7 +50,7 @@ public class ClientProcess implements Runnable
 
                 if(reader.available())
                 {
-                    PacketRegistry.get(reader.readInt()).getConstructor((Class<?>) null).newInstance().receive(reader, new PacketContext.Server(logger, genericsLogs, serverCallsLogs));
+                    PacketRegistry.get(Packet.S2C.class, reader.readInt()).getConstructor((Class<?>) null).newInstance().receive(reader, new PacketContext.Server(logger, genericsLogs, serverCallsLogs));
                 }
 
                 if(!packetsToSend.isEmpty())

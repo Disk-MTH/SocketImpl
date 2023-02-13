@@ -11,11 +11,14 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 
 public class Server
 {
+    /*---------------------------------------- Variables and constants ----------------------------------------*/
+
     private final Logger logger;
     private final InetSocketAddress address;
     private final SSLCertificate sslCertificate;
@@ -28,13 +31,14 @@ public class Server
     private final CommandsHandler commandsHandler;
     private final List<String> forbiddenIps;
 
-
     private final List<ClientProcess> clients = new ArrayList<>();
     private boolean isInit = false;
-    private boolean isListening = false;
+    private boolean isStarted = false;
     private boolean isPaused = false;
     private boolean areCommandsPaused = false;
     private ServerSocket serverSocket;
+
+    /*---------------------------------------- Constructors ----------------------------------------*/
 
     protected Server(
             Logger logger, InetSocketAddress address, SSLCertificate sslCertificate,
@@ -54,11 +58,18 @@ public class Server
         this.forbiddenIps = forbiddenIps;
     }
 
-    public synchronized void init()
+    /*---------------------------------------- Misc methods ----------------------------------------*/
+
+    public void init()
     {
-        if(isInit)
+        if (isInit)
         {
-            logger.log("Server already initialized", genericsLogs);
+            logger.warn("The server is already initialized", genericsLogs);
+            return;
+        }
+        else if (isStarted)
+        {
+            logger.warn("The server is started so it cannot be initialize again", genericsLogs);
             return;
         }
 
@@ -74,70 +85,82 @@ public class Server
 
         if (sslCertificate != null)
         {
-            logger.log("Server is initializing with SSl (https mode)", genericsLogs);
+            logger.log("The server is initializing with SSL (https mode)", genericsLogs);
 
             SSLContext sslContext;
             try
             {
-                logger.log("Generation of SSL context", genericsLogs);
+                logger.log("Generation of the SSL context", genericsLogs);
                 sslContext = sslCertificate.createSSLContext();
-                logger.log("SSL context has been generated", genericsLogs);
+                logger.log("The SSL context has been generated", genericsLogs);
             }
             catch (Exception exception)
             {
-                logger.error("Error during generation of SSL context", exception, genericsLogs);
+                logger.error("Error during generation of the SSL context", exception, genericsLogs);
                 close();
                 return;
             }
 
             try
             {
-                logger.log("Generation of server socket", genericsLogs);
+                logger.log("Generation of the server socket", genericsLogs);
                 serverSocket = Objects.requireNonNull(sslContext).getServerSocketFactory().createServerSocket(address.getPort(), maxEnqueuedRequests, address.getAddress());
                 ((SSLServerSocket) serverSocket).setNeedClientAuth(true);
                 ((SSLServerSocket) serverSocket).setEnabledProtocols(new String[]{"TLSv1.3"});
-                logger.log("Server socket has been generated", genericsLogs);
+                logger.log("The server socket has been generated", genericsLogs);
             }
             catch (IOException exception)
             {
-                logger.error("Error during generation of server socket", exception, genericsLogs);
+                logger.error("Error during generation of the server socket", exception, genericsLogs);
                 close();
                 return;
             }
         }
         else
         {
-            logger.log("Server is initializing without SSl (http mode)", genericsLogs);
+            logger.log("The server is initializing without SSl (http mode)", genericsLogs);
 
             try
             {
-                logger.log("Generation of server socket", genericsLogs);
+                logger.log("Generation of the server socket", genericsLogs);
                 serverSocket = ServerSocketFactory.getDefault().createServerSocket(address.getPort(), maxEnqueuedRequests, address.getAddress());
-                logger.log("Server socket has been generated", genericsLogs);
+                logger.log("The server socket has been generated", genericsLogs);
             }
             catch (IOException exception)
             {
-                logger.error("Error during generation of server socket", exception, genericsLogs);
+                logger.error("Error during generation of the server socket", exception, genericsLogs);
                 close();
                 return;
             }
         }
 
-        /*if (commandsHandler != null)
+        isInit = true;
+
+        if (commandsHandler != null)
         {
             commandsHandler.init(this);
-        }*/
+        }
 
-        isInit = true;
-        logger.log("Server is initialized on: " + address.getAddress().getHostAddress() + ":" + address.getPort(), genericsLogs);
+        logger.log("The server is initialized on: " + address.getAddress().getHostAddress() + ":" + address.getPort(), genericsLogs);
     }
 
-    public synchronized void listen()
+    public void start()
     {
-        logger.log("Server starts listening", genericsLogs);
-        isListening = true;
+        if (!isInit)
+        {
+            logger.warn("The server is not initialized so it cannot be start", genericsLogs);
+            return;
+        }
+        else if (isStarted)
+        {
+            logger.warn("The server is already started", genericsLogs);
+            return;
+        }
 
-        while (isListening && isInit)
+        logger.log("The server is started", genericsLogs);
+        isStarted = true;
+
+        while (isStarted)
         {
             try
             {
@@ -149,7 +172,7 @@ public class Server
                     clientSocket.close();
                     continue;
                 }
-                else if(forbiddenIps.contains(clientSocket.getInetAddress().getHostAddress()))
+                else if (forbiddenIps.contains(clientSocket.getInetAddress().getHostAddress()))
                 {
                     logger.warn("Forbidden request skipped from: " + clientSocket.getInetAddress().getHostAddress(), genericsLogs, serverCallsLogs);
                     clientSocket.close();
@@ -163,34 +186,69 @@ public class Server
             }
             catch (IOException exception)
             {
-                //todo
+                if (exception instanceof SocketException)
+                {
+                    logger.log("Incoming client socket closed", genericsLogs);
+                }
+
+                logger.error("Error while closing incoming client socket", exception, genericsLogs);
             }
         }
     }
 
-    public synchronized void close()
+    public void asyncStart()
     {
-        if (!isInit)
+        logger.log("The server is starting asynchronously", genericsLogs);
+        new Thread(this::start).start();
+    }
+
+    public void stop()
+    {
+        if (!isStarted)
         {
-            logger.log("Server already closed", genericsLogs);
+            logger.warn("The server is already stopped", genericsLogs);
             return;
         }
 
-        logger.log("Server is closing", genericsLogs);
-        isListening = false;
+        logger.log("Server is stopping", genericsLogs);
+
+        //this.clients.forEach((client) -> client.);
+
+        //TODO: kill clients
+
+        clients.clear();
+        logger.log("Server is stopped", genericsLogs);
+        isStarted = false;
+    }
+
+    public void close()
+    {
+        if (isStarted)
+        {
+            logger.warn("The server is started and must be stopped to be closed", genericsLogs);
+            return;
+        }
+        if (!isInit)
+        {
+            logger.warn("The server is already closed", genericsLogs);
+            return;
+        }
+
+        logger.log("The server is closing", genericsLogs);
 
         try
         {
             serverSocket.close();
             serverSocket = null;
-            logger.log("Server socket has been closed", genericsLogs);
+            logger.log("The server socket has been closed", genericsLogs);
         }
         catch (IOException | NullPointerException exception)
         {
-            logger.log("Unable to close server socket", genericsLogs);
+            logger.log("Unable to close the server socket", genericsLogs);
         }
 
-        logger.log("Server is closed", genericsLogs);
+        logger.log("The server is closed", genericsLogs);
+        isInit = false;
 
         if (genericsLogsInit && genericsLogs != null)
         {
@@ -201,15 +259,13 @@ public class Server
         {
             serverCallsLogs.close();
         }
-
-        isInit = false;
     }
 
-    public synchronized void pause(boolean pause)
+    public void pause(boolean pause)
     {
-        if (!isListening)
+        if (!isInit || !isStarted)
         {
-            logger.warn("Server is not listening so it cannot be paused", genericsLogs);
+            logger.warn("The server is not initialized and started so it cannot be paused/resumed", genericsLogs);
             return;
         }
 
@@ -226,20 +282,20 @@ public class Server
             this.isPaused = pause;
             if (pause)
             {
-                logger.log("Server paused", genericsLogs);
+                logger.log("The server has been paused", genericsLogs);
             }
             else
             {
-                logger.log("Server resumed", genericsLogs);
+                logger.log("The server has benn resumed", genericsLogs);
             }
         }
     }
 
-    public synchronized void pauseCommands(boolean pauseCommands)
+    public void pauseCommands(boolean pauseCommands)
     {
         if (!isInit)
         {
-            logger.warn("Server is not initialized so commands cannot be paused", genericsLogs);
+            logger.warn("The server is not initialized so commands cannot be paused/resumed", genericsLogs);
             return;
         }
 
@@ -256,13 +312,32 @@ public class Server
             this.areCommandsPaused = pauseCommands;
             if (pauseCommands)
             {
-                logger.log("Commands paused", genericsLogs);
+                logger.log("Commands have been paused", genericsLogs);
             }
             else
             {
-                logger.log("Commands resumed", genericsLogs);
+                logger.log("Commands have been resumed", genericsLogs);
             }
         }
+    }
+
+    /*---------------------------------------- Getters ----------------------------------------*/
+
+    //TODO: getters
+
+    public Logger getLogger()
+    {
+        return logger;
+    }
+
+    public LogsFile getGenericsLogs()
+    {
+        return genericsLogs;
+    }
+
+    public LogsFile getServerCallsLogs()
+    {
+        return serverCallsLogs;
     }
 
     public boolean isInit()
@@ -270,18 +345,12 @@ public class Server
         return isInit;
     }
 
-    public boolean isListening()
-    {
-        return isListening;
-    }
-
-    public boolean isPaused()
-    {
-        return isPaused;
-    }
-
     public boolean areCommandsPaused()
     {
         return areCommandsPaused;
     }
+
+    /*---------------------------------------- Setters ----------------------------------------*/
+
+    //TODO: setters
 }
